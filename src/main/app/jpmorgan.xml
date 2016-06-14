@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:jdbc-ee="http://www.mulesoft.org/schema/mule/ee/jdbc"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:cluster="http://www.mulesoft.org/schema/mule/ee/cluster" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:spring="http://www.springframework.org/schema/beans" 
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/jdbc http://www.mulesoft.org/schema/mule/ee/jdbc/current/mule-jdbc-ee.xsd
+http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-current.xsd
+http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd">
+<context:property-placeholder location="classpath:enviroments/${mule.env}/jpmorgan.config"></context:property-placeholder>
+	<spring:beans> 
+        <spring:bean id="log4jInitialization" class="org.springframework.beans.factory.config.MethodInvokingFactoryBean"> 
+            <spring:property name="targetClass" value="org.springframework.util.Log4jConfigurer"></spring:property>  
+            <spring:property name="targetMethod" value="initLogging"></spring:property>  
+            <spring:property name="arguments"> 
+                <spring:list> 
+                    <spring:value>classpath:enviroments/${mule.env}/log4j.properties</spring:value>  
+                </spring:list>  
+            </spring:property>  
+        </spring:bean>  
+      
+       
+    </spring:beans>
+   
+</mule>

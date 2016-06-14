@@ -1,0 +1,161 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns:objectstore="http://www.mulesoft.org/schema/mule/objectstore" xmlns:vm="http://www.mulesoft.org/schema/mule/vm" xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns:jdbc-ee="http://www.mulesoft.org/schema/mule/ee/jdbc" xmlns:json="http://www.mulesoft.org/schema/mule/json" xmlns:scripting="http://www.mulesoft.org/schema/mule/scripting" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:apikit="http://www.mulesoft.org/schema/mule/apikit" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:spring="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/apikit http://www.mulesoft.org/schema/mule/apikit/current/mule-apikit.xsd
+http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.1.xsd
+http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/json/current/mule-json.xsd
+http://www.mulesoft.org/schema/mule/ee/jdbc http://www.mulesoft.org/schema/mule/ee/jdbc/current/mule-jdbc-ee.xsd
+http://www.mulesoft.org/schema/mule/scripting http://www.mulesoft.org/schema/mule/scripting/current/mule-scripting.xsd
+http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd
+http://www.mulesoft.org/schema/mule/vm http://www.mulesoft.org/schema/mule/vm/current/mule-vm.xsd
+http://www.mulesoft.org/schema/mule/objectstore http://www.mulesoft.org/schema/mule/objectstore/current/mule-objectstore.xsd">
+    <apikit:config name="api-config" raml="api.raml" consoleEnabled="true" consolePath="console" doc:name="Router" />
+    <http:connector name="HTTP_HTTPS" cookieSpec="netscape" validateConnections="true" sendBufferSize="0" receiveBufferSize="0" receiveBacklog="0" clientSoTimeout="10000" serverSoTimeout="10000" socketSoLinger="0" doc:name="HTTP-HTTPS" />
+    <objectstore:config name="ObjectStore.JPM" doc:name="ObjectStore"/>
+    <flow name="api-main">
+        <http:inbound-endpoint doc:name="HTTP" connector-ref="HTTP_HTTPS" exchange-pattern="request-response" host="${http.url.host}" path="${http.url.jpm.path}" port="${http.url.port}" contentType="application/json" mimeType="application/json"/>
+        <apikit:router config-ref="api-config" doc:name="APIkit Router" />
+        <exception-strategy ref="api-apiKitGlobalExceptionMapping" doc:name="Reference Exception Strategy" />
+    </flow>
+    <flow name="get:/supersimplestock/dividendYield:api-config">
+        <component class="jpmorgan.simplestock.dividendYield.StartContext" doc:name="Java"/>
+        <http:body-to-parameter-map-transformer doc:name="Body to Parameter Map"/>
+        <logger message="start ... #[payload]" level="INFO" doc:name="Logger"/>
+        <enricher target="#[flowVars.globalBeverage]" doc:name="Message Enricher">
+            <flow-ref name="apiSub_GlobalBeverage" doc:name="apiSub_GlobalBeverage"/>
+        </enricher>
+        <logger message="calculate ..." level="INFO" doc:name="Logger"/>
+        <custom-transformer class="jpmorgan.simplestock.dividendYield.DividendCalculation" doc:name="Java"/>
+        <json:object-to-json-transformer doc:name="Object to JSON"/>
+        <exception-strategy ref="jpmorgan.exceptionsCatch_Exception_Strategy" doc:name="Reference Exception Strategy"/>
+
+    </flow>
+    <flow name="get:/supersimplestock/peratio:api-config">
+        <component class="jpmorgan.simplestock.dividendYield.StartContext" doc:name="Java"/>
+        <http:body-to-parameter-map-transformer doc:name="Body to Parameter Map"/>
+        <logger message="start ... #[payload]" level="INFO" doc:name="Logger"/>
+        <enricher target="#[flowVars.globalBeverage]" doc:name="Message Enricher">
+            <flow-ref name="apiSub_GlobalBeverage" doc:name="apiSub_GlobalBeverage"/>
+        </enricher>
+		<logger message="calculate ..." level="INFO" doc:name="Logger"/>
+        <custom-transformer class="jpmorgan.simplestock.peratio.PeRatioCalculation" doc:name="Java"/>
+        <json:object-to-json-transformer doc:name="Object to JSON"/>
+        <exception-strategy ref="jpmorgan.exceptionsCatch_Exception_Strategy" doc:name="Reference Exception Strategy"/>
+
+    </flow>
+    <flow name="post:/supersimplestock/stocks:api-config">
+        <component class="jpmorgan.simplestock.trades.StartContextRecord" doc:name="Java"/>
+        <json:json-to-object-transformer doc:name="JSON to Object"/>
+        <http:body-to-parameter-map-transformer doc:name="Body to Parameter Map"/>
+        <logger message="start ... #[payload]" level="INFO" doc:name="Logger"/>
+        <logger message="#[flowVars]" level="INFO" doc:name="Logger"/>
+
+        <custom-transformer class="jpmorgan.simplestock.trades.TradeRecord" doc:name="Java"/>
+        <set-variable variableName="record" value="#[payload]" doc:name="Variable"/>
+        <objectstore:retrieve config-ref="ObjectStore.JPM" key="trades" defaultValue-ref="#[new java.util.ArrayList()]" doc:name="ObjectStore"/>
+        <scripting:transformer doc:name="Groovy">
+            <scripting:script engine="Groovy"><![CDATA[payload.add(flowVars.record);
+
+return payload;]]></scripting:script>
+        </scripting:transformer>
+        <logger message="store record #[payload]" level="INFO" doc:name="Logger"/>
+        <objectstore:store config-ref="ObjectStore.JPM" key="trades" value-ref="#[payload]" doc:name="ObjectStore" overwrite="true"/>
+        <expression-filter expression="#[1==2]" doc:name="Expression"/>
+        <exception-strategy ref="jpmorgan.exceptionsCatch_Exception_Strategy" doc:name="Reference Exception Strategy"/>
+
+    </flow>
+    <flow name="get:/supersimplestock/stocks:api-config">
+        <component class="jpmorgan.simplestock.trades.StartContextStockPrice" doc:name="Java"/>
+        <http:body-to-parameter-map-transformer doc:name="Body to Parameter Map"/>
+        <logger message="start ... #[payload]" level="INFO" doc:name="Logger"/>
+        <enricher target="#[flowVars.trades]" doc:name="Message Enricher">
+			<objectstore:retrieve config-ref="ObjectStore.JPM" key="trades" defaultValue-ref="#[new java.util.ArrayList()]" doc:name="ObjectStore"/>
+        </enricher>
+
+        <custom-transformer class="jpmorgan.simplestock.trades.StockPrice" doc:name="Java"/>
+        <json:object-to-json-transformer doc:name="Object to JSON"/>
+        <exception-strategy ref="jpmorgan.exceptionsCatch_Exception_Strategy" doc:name="Reference Exception Strategy"/>
+
+    </flow>
+    <flow name="get:/supersimplestock/gbce:api-config">
+        <component class="jpmorgan.simplestock.trades.StartContextGBCE" doc:name="Java"/>
+
+        <logger message="start ... " level="INFO" doc:name="Logger"/>
+        <objectstore:retrieve config-ref="ObjectStore.JPM" key="trades" defaultValue-ref="#[new java.util.ArrayList()]" doc:name="ObjectStore"/>
+
+
+        <custom-transformer class="jpmorgan.simplestock.trades.CalculateAllShareIndex" doc:name="Java"/>
+        <json:object-to-json-transformer doc:name="Object to JSON"/>
+        <exception-strategy ref="jpmorgan.exceptionsCatch_Exception_Strategy" doc:name="Reference Exception Strategy"/>
+
+    </flow>
+    
+    
+    <sub-flow name="apiSub_GlobalBeverage">
+    	<enricher target="#[flowVars.objExistElement]" doc:name="Message Enricher">
+        	<objectstore:contains config-ref="ObjectStore.JPM" key="GlobalBeverage" doc:name="ObjectStore"/>
+        </enricher>
+         <choice doc:name="Choice">
+            <when expression="#[flowVars.objExistElement == false]">
+                <scripting:transformer doc:name="Groovy">
+                    <scripting:script engine="Groovy"><![CDATA[
+retVal = [];                    
+
+def t = [:];
+t.put('symbol', 'TEA');
+t.put('type', 'Common');
+t.put('lastDividend', 0);
+t.put('fixedDividend', 0);
+t.put('parValue', 100);
+retVal.add(t);
+
+def p = [:];
+p.put('symbol', 'POP');
+p.put('type', 'Common');
+p.put('lastDividend', 8);
+p.put('fixedDividend', 0);
+p.put('parValue', 100);
+retVal.add(p);
+
+def a = [:];
+a.put('symbol', 'ALE');
+a.put('type', 'Common');
+a.put('lastDividend', 23);
+a.put('fixedDividend', 0);
+a.put('parValue', 60);
+retVal.add(a);
+
+def g = [:];
+g.put('symbol', 'GIN');
+g.put('type', 'Preferred');
+g.put('lastDividend', 8);
+g.put('fixedDividend', 2);
+g.put('parValue', 100);
+retVal.add(g);
+
+def j = [:];
+j.put('symbol', 'JOE');
+j.put('type', 'Common');
+j.put('lastDividend', 13);
+j.put('fixedDividend', 0);
+j.put('parValue', 250);
+retVal.add(j);
+
+return retVal;
+
+]]></scripting:script>
+                </scripting:transformer>
+
+
+                <objectstore:store config-ref="ObjectStore.JPM" key="GlobalBeverage" value-ref="#[payload]" overwrite="true" doc:name="ObjectStore"/>
+            </when>
+            <otherwise>
+
+                <objectstore:retrieve config-ref="ObjectStore.JPM" key="GlobalBeverage" defaultValue-ref="#[new java.util.ArrayList()]" doc:name="ObjectStore"/>
+
+            </otherwise>
+        </choice>
+    </sub-flow>
+
+   
+</mule>

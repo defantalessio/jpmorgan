@@ -1,0 +1,80 @@
+#%RAML 0.8
+title: jpmorgan
+version: 1.0
+baseUri: http://localhost:8081/jpmorgan
+/supersimplestock:
+  /dividendYield:
+    get:
+      description: calculate the dividend yield 
+      queryParameters:
+        stockSymbol:
+          description: stockSymbol TEA POP ALE GIN JOE
+          required: true
+          type: string
+        tickerPrice:
+          description: Ticker Price
+          required: true
+          type: number
+      responses:
+        200:
+          body:
+            application/json:
+              example:  1
+  /peratio:
+    get:
+      description: calculate the P/E Ratio 
+      queryParameters:
+        stockSymbol:
+          description: stockSymbol TEA POP ALE GIN JOE
+          required: true
+          type: string
+        tickerPrice:
+          description: Ticker Price
+          required: true
+          type: number
+      responses:
+        200:
+          body:
+            application/json:
+              example:  1
+  /gbce:
+    get:
+      description: calculate the P/E Ratio 
+      responses:
+        200:
+          body:
+            application/json:
+              example:  1              
+  /stocks:
+    get:
+      description: Calculate Stock Price based on trades recorded in past 15 minutes
+      queryParameters:
+        stockSymbol:
+          description: stockSymbol TEA POP ALE GIN JOE
+          required: true
+          type: string
+      responses:
+        200:
+          body:
+            application/json:
+              example:  1          
+    post:
+      description: record a trade, with timestamp, quantity of shares, buy or sell indicator and price
+      queryParameters:
+        stockSymbol:
+          description: stockSymbol TEA POP ALE GIN JOE
+          required: true
+          type: string
+        quantity:
+          description: quantity of shares
+          required: true
+          type: integer
+        type:
+          description:  buy or sell 'B' or 'S' 
+          required: true
+          type: string
+        price:
+          description: price
+          required: true
+          type: number
+     

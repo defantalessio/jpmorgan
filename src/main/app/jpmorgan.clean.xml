@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:objectstore="http://www.mulesoft.org/schema/mule/objectstore" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:spring="http://www.springframework.org/schema/beans" 
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/objectstore http://www.mulesoft.org/schema/mule/objectstore/current/mule-objectstore.xsd">
+    <flow name="jpmorgan.cleanFlow">
+       <http:inbound-endpoint doc:name="HTTP" connector-ref="HTTP_HTTPS" exchange-pattern="request-response" host="${http.url.host}" path="${http.url.clean.path}" port="${http.url.port}" />
+        <objectstore:remove config-ref="ObjectStore.JPM" key="trades" ignoreNotExists="true" doc:name="ObjectStore"/>
+        <objectstore:remove config-ref="ObjectStore.JPM" key="GlobalBeverage" ignoreNotExists="true" doc:name="ObjectStore"/>
+        <set-payload value="CLEANED" doc:name="Set Payload"/>
+    </flow>
+</mule>
